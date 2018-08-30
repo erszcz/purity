@@ -44,7 +44,7 @@ main() ->
     {Options, Files0} = parse_args(),
 
     with_option(version, Options, fun(true) ->
-                io:format("Purity Analyzer for Erlang, version ~s~n", [?VSN]),
+                io:format("Purity Analyzer for Erlang, version ~s~n", ["0.2"]),
                 halt(0) end),
     Files =
       case option(apps, Options) of
@@ -106,11 +106,11 @@ main() ->
 
     %% Optionally:
     %% Print functions for which we lack purity information.
-    with_option(print_missing, Options, fun(true) ->
-                print_missing(Print, Final) end),
+    with_option(print_missing, Options,
+                fun(true) -> print_missing(Print, Final) end),
     %% Write statistics to file.
-    with_option(stats, Options, fun(Filename) ->
-                do_stats(Filename, Modules, Final) end),
+    with_option(stats, Options,
+                fun(F) -> do_stats(F, Modules, Final) end),
 
     case option(build_plt, Options) orelse option(add_to_plt, Options) of
         true ->
@@ -252,7 +252,7 @@ pretty_print(Print, {MFA, Result}) ->
     Print("~s ~s.~n", [fmt_mfa(MFA), fmt(Result)]).
 
 
--spec print_missing(fun((_,_) -> ok), dict()) -> ok.
+-spec print_missing(fun((_,_) -> ok), dict:dict()) -> ok.
 
 print_missing(Print, Table) ->
     {Funs, Primops} = purity:find_missing(Table),

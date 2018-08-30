@@ -36,9 +36,9 @@
 
 -type map_key() :: cerl:var_name().
 -type map_val() :: mfa() | pos_integer().
--type map()     :: [{map_key(), map_val()}].
+-type map_()     :: [{map_key(), map_val()}].
 
--type sub() :: {dict(), dict()}.
+-type sub() :: {dict:dict(), dict:dict()}.
 
 -type deplist()      :: purity_utils:deplist().
 -type dependency()   :: purity_utils:dependency().
@@ -67,15 +67,15 @@
 %%            value or a context.
 -record(state, {mfa     = undefined  :: mfa() | undefined,
                 ctx     = ctx_new()  :: deplist(),
-                vars    = map_new()  :: map(),
-                args    = map_new()  :: map(),
+                vars    = map_new()  :: map_(),
+                args    = map_new()  :: map_(),
                 subs    = sub_new()  :: sub(),
-                aliases = dict:new() :: dict(),
+                aliases = dict:new() :: dict:dict(),
                 free    = []         :: [cerl:var_name()],
                 nested  = []         :: [mfa()],
                 count   = 1          :: pos_integer(),
                 names   = []         :: [atom()],
-                table   = dict:new() :: dict()}).
+                table   = dict:new() :: dict:dict()}).
 
 -type state() :: #state{}.
 
@@ -86,7 +86,7 @@
 %% Analysis starts from parsed core erlang terms.
 %%
 %% @see files/2
--spec module(cerl:c_module()) -> dict().
+-spec module(cerl:c_module()) -> dict:dict().
 
 module(Core) ->
     module(Core, dict:new()).
@@ -115,7 +115,7 @@ module(Core, Table) ->
 %%
 %% @see module/2
 
--spec files([file:filename()]) -> dict().
+-spec files([file:filename()]) -> dict:dict().
 
 files(Filenames) ->
     files(Filenames, dict:new()).
@@ -127,7 +127,7 @@ files(Filenames, Table) when is_list(Filenames) ->
 %% In case of error a message is printed and an empty lookup table is
 %% returned.
 
--spec file(file:filename()) -> dict().
+-spec file(file:filename()) -> dict:dict().
 
 file(Filename) ->
     file(Filename, dict:new()).
@@ -151,10 +151,10 @@ file(Filename, Table) ->
 %% @see module/2
 %% @see files/1
 
--spec pfiles([file:filename()]) -> dict().
+-spec pfiles([file:filename()]) -> dict:dict().
 
 pfiles(Filenames) when is_list(Filenames) ->
-    Tabs = ?utils:pmap({?MODULE, file}, [], Filenames),
+    Tabs = ?utils:pmap_({?MODULE, file}, [], Filenames),
     merge_dicts(lists:zip(to_modules(Filenames), Tabs)).
 
 %% @doc If the same module is provided more than once, keep the last occurence.
@@ -573,7 +573,7 @@ handle_case(Tree, St0) ->
     St2 = lists:foldl(
         fun(Cl, St) ->
                 traverse(Cl,
-                    St#state{subs = submerge(Args, Sm0, submap(Arg, Cl))}) end,
+                    St#state{subs = submerge(Args, Sm0, submap_(Arg, Cl))}) end,
         St1, Cls),
     %% Restore the original map before return.
     %% Assert that the map of St0 is equal to that of St1.
@@ -587,11 +587,11 @@ handle_case(Tree, St0) ->
 %% in order to recreate it at each new case clause.
 submerge(Args, {Map0, Sub0}, Map1) ->
     Map2 = merge(Map0, Map1),
-    {Map2, merge(Sub0, to_argument_map(Args, Map2))}.
+    {Map2, merge(Sub0, to_argument_map_(Args, Map2))}.
 
 %% @doc Generate the mapping of variables to the position of
 %% the argument they are a subset of.
-to_argument_map(Args, Map) ->
+to_argument_map_(Args, Map) ->
     G = dict:fold(fun make_edge/3, digraph:new(), Map),
     M = lists:foldl(
         fun({A,N}, D) -> update(D, reaching(G, A), N) end,
@@ -606,7 +606,7 @@ make_edge(V1, V2, G) ->
 reaching(G, A) ->
     digraph_utils:reaching_neighbours([A], G).
 
-submap(Tree, Clause) ->
+submap_(Tree, Clause) ->
     Items =
       case cerl:type(Tree) of
           var -> %% single variable match
@@ -758,11 +758,11 @@ lookup_arg(Name, #state{args = ArgMap} = St) ->
 map_new() ->
     [].
 
--spec map_add(map_key(), map_val(), map()) -> map().
+-spec map_add(map_key(), map_val(), map_()) -> map_().
 map_add(Key, Val, Map) ->
     [{Key, Val}|Map].
 
--spec map_lookup(map_key(), map()) -> error | {ok, map_val()}.
+-spec map_lookup(map_key(), map_()) -> error | {ok, map_val()}.
 map_lookup(Key, Map) ->
     case lists:keyfind(Key, 1, Map) of
         false ->
