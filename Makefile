@@ -4,6 +4,11 @@
 
 ERLC ?= erlc
 DIALYZER ?= dialyzer
+ifeq ($(shell uname), Darwin)
+SED := gsed
+else
+SED := sed
+endif
 
 EFLAGS += -DVSN='"$(VSN)"' +debug_info +warn_exported_vars +warn_unused_vars +warn_unused_import +warn_missing_spec
 DFLAGS += -n -Wunmatched_returns -Wunderspecs -Wrace_conditions -Wbehaviours
@@ -75,7 +80,7 @@ $(ESRC)/purity_bifs.erl: $(CHEATS)
 	@$(SCRIPTS)/purity_bifs $^ > $@
 
 $(APP): $(ESRC)/$(APP_SRC) vsn.mk
-	sed -e 's/%VSN%/$(VSN)/' $< > $@
+	$(SED) -e 's/%VSN%/$(VSN)/' $< > $@
 
 ## Specific rules ##
 
@@ -87,7 +92,7 @@ tests: $(BIN) build_tests
 
 units:
 	EFLAGS=-DTEST $(MAKE)
-	@./scripts/utests `echo src/*_tests.hrl | sed 's/_tests//g'`
+	@./scripts/utests `echo src/*_tests.hrl | $(SED) 's/_tests//g'`
 
 
 dialyzer: $(EBIN) $(BIN)
